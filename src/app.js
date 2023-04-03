@@ -19,35 +19,6 @@ const DATABASE = new Pool({
     port: 5432,
 });
 
-const getStates = async (request, response) => {
-    //response.header('Access-Control-Allow-Origin', '*');
-    //response.header(
-    //'Access-Control-Allow-Methods',
-    //'GET, POST, OPTIONS, PUT, DELETE'
-    //);
-    //response.header(
-    //'Access-Control-Allow-Headers',
-    //'Origin, X-Requested-With, Content-Type, Accept'
-    //);
-    try {
-        await DATABASE.connect();
-        await DATABASE.query('BEGIN');
-        let statement = 'SELECT DISTINCT state FROM business;';
-        const result = await DATABASE.query(statement);
-        console.log(result.rows);
-        //response.status(200).json({ message: result.rows });
-        response.send(result.rows);
-        //console.log(response.json(result.rows));
-        //await DATABASE.query('ROLLBACK');
-    } catch (err) {
-        await DATABASE.query('ROLLBACK');
-        console.log(response, err);
-    } finally {
-        //DATABASE.end();
-        //console.log('DATABASE IS STILL OPEN.');
-    }
-};
-
 const getData = async (request, response) => {
     let state = request.query.state;
     let city = request.query.city;
@@ -71,7 +42,6 @@ const getData = async (request, response) => {
             /*
              * get cities from a state query
              * */
-            /* query cities */
             const statement =
                 'SELECT DISTINCT city FROM business WHERE business.state=$1;';
             const value = [state];
@@ -99,7 +69,6 @@ const getData = async (request, response) => {
             //DATABASE.end();
         } else {
         }
-        //console.log('DATABASE IS STILL OPEN.');
     }
 };
 
@@ -114,7 +83,6 @@ app.use(cookieParser());
 // app.use(express.static(path.join(__dirname, "public")));
 
 app.use('/v1', indexRouter);
-app.get('/v1/states', getStates);
 app.get('/v1/request', getData);
 
 export default app;
