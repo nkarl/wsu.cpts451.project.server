@@ -9,7 +9,7 @@ import indexRouter from './routes/index';
 
 const app = express();
 
-import { Pool } from 'pg';
+import { Client, Pool } from 'pg';
 
 const DATABASE = new Pool({
     host: 'localhost',
@@ -54,19 +54,19 @@ const getData = async (request, response) => {
 
     let result;
     let result_debug;
+    const client = await DATABASE.connect();
     try {
-        await DATABASE.connect();
-        await DATABASE.query('BEGIN');
+        await client.query('BEGIN');
 
         if (state !== undefined && city !== undefined) {
             /*
              * get businesses from a pair of state and city queries
              * */
             const statement =
-                'SELECT DISTINCT name FROM business WHERE state=$1 AND city="$2";';
+                'SELECT * FROM business WHERE state=$1 AND city=$2;';
             const value = [state, city];
             result_debug = { statement: statement, value: value };
-            result = await DATABASE.query(statement, value);
+            result = await client.query(statement, value);
         } else if (state !== undefined && city === undefined) {
             /*
              * get cities from a state query
@@ -76,16 +76,16 @@ const getData = async (request, response) => {
                 'SELECT DISTINCT city FROM business WHERE business.state=$1;';
             const value = [state];
             result_debug = { statement: statement, value: value };
-            result = await DATABASE.query(statement, value);
+            result = await client.query(statement, value);
         } else {
             /*
              * default case; select all states
              * */
             const statement = 'SELECT DISTINCT state FROM business;';
-            result = await DATABASE.query(statement);
+            result = await client.query(statement);
         }
     } catch (err) {
-        await DATABASE.query('ROLLBACK');
+        await client.query('ROLLBACK');
         console.log(response, err);
         console.log('query.state=', state);
         console.log('query.city=', city);
@@ -95,14 +95,16 @@ const getData = async (request, response) => {
         if (result !== undefined) {
             console.log(result.rows);
             response.send(result.rows);
+            client.release();
+            //DATABASE.end();
+        } else {
         }
-        //DATABASE.end();
         //console.log('DATABASE IS STILL OPEN.');
     }
 };
 
 const corsOptions = {};
-app.use(cors());
+//app.use(cors());
 app.use(logger('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -113,6 +115,6 @@ app.use(cookieParser());
 
 app.use('/v1', indexRouter);
 app.get('/v1/states', getStates);
-app.get('/v1/req', getData);
+app.get('/v1/request', getData);
 
 export default app;
