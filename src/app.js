@@ -19,56 +19,60 @@ const DATABASE = new Pool({
     port: 5432,
 });
 
+/*
+ * API: SELECT data.
+ * */
+const selectComponentQuery = async (statement, values = []) => {
+    let _, result;
+    const CLIENT = await DATABASE.connect();
+    try {
+        _ = await CLIENT.query('BEGIN');
+        result = await CLIENT.query(statement, values);
+    } catch (err) {
+        _ = await CLIENT.query('ROLLBACK');
+        console.log('ERROR: Unable to submit query.');
+        console.log(err);
+    } finally {
+        CLIENT.release();
+        return result.rows;
+    }
+};
+
+/*
+ * GET: parametrized queries for page components
+ * */
 const getData = async (request, response) => {
     let state = request.query.state;
     let city = request.query.city;
+    console.log('query.state=', state);
+    console.log('query.city=', city);
 
-    let result;
-    let result_debug;
-    const client = await DATABASE.connect();
-    try {
-        await client.query('BEGIN');
+    let statement, values;
 
-        if (state !== undefined && city !== undefined) {
-            /*
-             * get businesses from a pair of state and city queries
-             * */
-            const statement =
-                'SELECT * FROM business WHERE state=$1 AND city=$2;';
-            const value = [state, city];
-            result_debug = { statement: statement, value: value };
-            result = await client.query(statement, value);
-        } else if (state !== undefined && city === undefined) {
-            /*
-             * get cities from a state query
-             * */
-            const statement =
-                'SELECT DISTINCT city FROM business WHERE business.state=$1;';
-            const value = [state];
-            result_debug = { statement: statement, value: value };
-            result = await client.query(statement, value);
-        } else {
-            /*
-             * default case; select all states
-             * */
-            const statement = 'SELECT DISTINCT state FROM business;';
-            result = await client.query(statement);
-        }
-    } catch (err) {
-        await client.query('ROLLBACK');
-        console.log(response, err);
-        console.log('query.state=', state);
-        console.log('query.city=', city);
-        console.log('statement=', result_debug);
-        response.send(result_debug);
-    } finally {
-        if (result !== undefined) {
-            console.log(result.rows);
-            response.send(result.rows);
-            client.release();
-            //DATABASE.end();
-        } else {
-        }
+    if (state !== undefined && city !== undefined) {
+        /*
+         * get businesses from a pair of state and city queries
+         * */
+        statement = 'SELECT * FROM business WHERE state=$1 AND city=$2;';
+        values = [state, city];
+    } else if (state !== undefined && city === undefined) {
+        /*
+         * get cities from a state query
+         * */
+        statement =
+            'SELECT DISTINCT city FROM business WHERE business.state=$1;';
+        values = [state];
+    } else {
+        /*
+         * default case; select all states
+         * */
+        statement = 'SELECT DISTINCT state FROM business;';
+        values = [];
+    }
+    const result = await selectComponentQuery(statement, values);
+    console.log(result);
+    if (result) {
+        response.send(result);
     }
 };
 
@@ -83,6 +87,6 @@ app.use(cookieParser());
 // app.use(express.static(path.join(__dirname, "public")));
 
 app.use('/v1', indexRouter);
-app.get('/v1/request', getData);
+app.get('/v1/get', getData);
 
 export default app;
