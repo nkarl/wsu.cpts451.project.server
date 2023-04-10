@@ -42,38 +42,89 @@ const selectComponentQuery = async (statement, values = []) => {
  * GET: parametrized queries for page components
  * */
 const getData = async (request, response) => {
-    let state = request.query.state;
-    let city = request.query.city;
-    console.log('query.state=', state);
-    console.log('query.city=', city);
+    const query = request.query;
+    let statement,
+        values = [];
+    for (let k in request.query) {
+        values = [...values, request.query[k]];
+    }
 
-    let statement, values;
-
-    if (state !== undefined && city !== undefined) {
+    if (query.state !== undefined && query.city !== undefined) {
         /*
          * get businesses from a pair of state and city queries
          * */
         statement = 'SELECT * FROM business WHERE state=$1 AND city=$2;';
-        values = [state, city];
-    } else if (state !== undefined && city === undefined) {
+    } else if (query.state !== undefined && query.city === undefined) {
         /*
          * get cities from a state query
          * */
         statement =
             'SELECT DISTINCT city FROM business WHERE business.state=$1;';
-        values = [state];
     } else {
         /*
          * default case; select all states
          * */
         statement = 'SELECT DISTINCT state FROM business;';
-        values = [];
     }
+
     const result = await selectComponentQuery(statement, values);
     console.log(result);
     if (result) {
         response.send(result);
+    } else {
+        response.send({
+            statement: statement,
+            values: values,
+        });
     }
+};
+
+const testGetData = async (request, response) => {
+    const query = request.query;
+    let statement,
+        values = [];
+    console.log(query);
+    for (let k in query) {
+        console.log(`${k}=${query[k]}`);
+        values = [...values, query[k]];
+    }
+    console.log(values);
+
+    if (values.length === 0) {
+        statement = 'SELECT DISTINCT state FROM business;';
+    } else if (values.length === 1 && 'state' in query) {
+        statement =
+            'SELECT DISTINCT city FROM business WHERE business.state=$1;';
+    } else if (values.length === 2 && 'city' in query) {
+        statement =
+            'SELECT DISTINCT zipcode FROM business WHERE business.state=$1 AND business.city=$2;';
+    } else if (values.length === 3 && 'zipcode' in query) {
+        statement =
+            'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+    }
+    const result = await selectComponentQuery(statement, values);
+    console.log(result);
+    response.send(result);
+};
+
+const testGetZip = async (request, response) => {
+    const query = request.query;
+    let statement,
+        values = [];
+    console.log(query);
+    for (let k in query) {
+        console.log(`${k}=${query[k]}`);
+        values = [...values, query[k]];
+    }
+    console.log(values);
+
+    //statement =
+    //'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+    statement =
+        'SELECT DISTINCT zipcode FROM business WHERE business.state=$1 AND business.city=$2;';
+    const result = await selectComponentQuery(statement, values);
+    console.log(result);
+    response.send(result);
 };
 
 const corsOptions = {};
@@ -88,5 +139,7 @@ app.use(cookieParser());
 
 app.use('/v1', indexRouter);
 app.get('/v1/get', getData);
+app.get('/v1/test', testGetData);
+app.get('/v1/testgetZip', testGetZip);
 
 export default app;
