@@ -140,6 +140,6 @@ app.use(cookieParser());
 app.use('/v1', indexRouter);
 app.get('/v1/get', getData);
 app.get('/v1/test', testGetData);
-app.get('/v1/testgetZip', testGetZip);
+app.get('/v1/testGetZip', testGetZip);
 
 export default app;
