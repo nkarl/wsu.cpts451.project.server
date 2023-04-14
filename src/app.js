@@ -20,7 +20,7 @@ const DATABASE = new Pool({
 });
 
 /*
- * API: SELECT data.
+ * API: request SELECT data.
  * */
 const selectComponentQuery = async (statement, values = []) => {
     let _, result;
@@ -85,7 +85,6 @@ const testGetData = async (request, response) => {
         values = [];
     console.log(query);
     for (let k in query) {
-        console.log(`${k}=${query[k]}`);
         values = [...values, query[k]];
     }
     console.log(values);
