@@ -116,10 +116,10 @@ const testGetData = async (request, response) => {
             case 4:
                 if (IsParamInQuery(['state', 'city', 'zipcode', 'popular'], query)) {
                     statement =
-                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND num_reviews>20;';
                 } else if (IsParamInQuery(['state', 'city', 'zipcode', 'successful'], query)) {
                     statement =
-                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND stars>3;';
                 }
             default:
                 throw new Error('Query is not supported.');
