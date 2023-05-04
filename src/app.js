@@ -79,49 +79,67 @@ const getData = async (request, response) => {
     }
 };
 
+function IsParamInQuery(paramlist, query) {
+    return paramlist.every((k) => k in query);
+}
+
 const testGetData = async (request, response) => {
     const query = request.query;
-    let statement,
-        values = [];
     console.log(query);
-    for (let k in query) {
-        values = [...values, query[k]];
-    }
+    const values = Object.values(query);
     console.log(values);
 
-    if (values.length === 0) {
-        statement = 'SELECT DISTINCT state FROM business;';
-    } else if (values.length === 1 && 'state' in query) {
-        statement =
-            'SELECT DISTINCT city FROM business WHERE business.state=$1;';
-    } else if (values.length === 2 && 'city' in query) {
-        statement =
-            'SELECT DISTINCT zipcode FROM business WHERE business.state=$1 AND business.city=$2;';
-    } else if (values.length === 3 && 'zipcode' in query) {
-        statement =
-            'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+    let statement;
+    try {
+        switch (Object.keys(query).length) {
+            case 0:
+                statement = 'SELECT DISTINCT state FROM business;';
+                break;
+            case 1:
+                if (IsParamInQuery(['state'], query)) {
+                    statement =
+                        'SELECT DISTINCT city FROM business WHERE business.state=$1;';
+                }
+                break;
+            case 2:
+                if (IsParamInQuery(['state', 'city'], query)) {
+                    statement =
+                        'SELECT DISTINCT zipcode FROM business WHERE business.state=$1 AND business.city=$2;';
+                }
+                break;
+            case 3:
+                if (IsParamInQuery(['state', 'city', 'zipcode'], query)) {
+                    statement =
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+                }
+                break;
+            case 4:
+                if (IsParamInQuery(['state', 'city', 'zipcode', 'popular'], query)) {
+                    statement =
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+                } else if (IsParamInQuery(['state', 'city', 'zipcode', 'successful'], query)) {
+                    statement =
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
+                }
+            default:
+                throw new Error('Query is not supported.');
+                break;
+        }
+    } catch (e) {
+        console.error(e);
     }
+
     const result = await selectComponentQuery(statement, values);
     console.log(result);
     response.send(result);
 };
 
-const testGetZip = async (request, response) => {
+const testQuery = async (request, response) => {
     const query = request.query;
-    let statement,
-        values = [];
     console.log(query);
-    for (let k in query) {
-        console.log(`${k}=${query[k]}`);
-        values = [...values, query[k]];
-    }
+    const values = Object.values(query);
     console.log(values);
-
-    //statement =
-    //'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3;';
-    statement =
-        'SELECT DISTINCT zipcode FROM business WHERE business.state=$1 AND business.city=$2;';
-    const result = await selectComponentQuery(statement, values);
+    const result = query;
     console.log(result);
     response.send(result);
 };
@@ -139,6 +157,6 @@ app.use(cookieParser());
 app.use('/v1', indexRouter);
 app.get('/v1/get', getData);
 app.get('/v1/test', testGetData);
-app.get('/v1/testGetZip', testGetZip);
+app.get('/v1/testQuery', testQuery);
 
 export default app;
