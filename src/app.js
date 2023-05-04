@@ -34,7 +34,7 @@ const selectComponentQuery = async (statement, values = []) => {
         console.log(err);
     } finally {
         CLIENT.release();
-        return result.rows;
+        return result !== undefined ? result.rows : ['result === undefined'];
     }
 };
 
@@ -86,7 +86,7 @@ function IsParamInQuery(paramlist, query) {
 const testGetData = async (request, response) => {
     const query = request.query;
     console.log(query);
-    const values = Object.values(query);
+    let values = Object.values(query);
     console.log(values);
 
     let statement;
@@ -114,13 +114,15 @@ const testGetData = async (request, response) => {
                 }
                 break;
             case 4:
-                if (IsParamInQuery(['state', 'city', 'zipcode', 'popular'], query)) {
+                if ('popular' in query) {
                     statement =
                         'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND num_reviews>20;';
-                } else if (IsParamInQuery(['state', 'city', 'zipcode', 'successful'], query)) {
+                } else if ('successful' in query) {
                     statement =
-                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND stars>3;';
+                        'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND stars>3.5 AND num_reviews>20;';
                 }
+                values = values.slice(0, -1);
+                break;
             default:
                 throw new Error('Query is not supported.');
                 break;
@@ -139,7 +141,16 @@ const testQuery = async (request, response) => {
     console.log(query);
     const values = Object.values(query);
     console.log(values);
-    const result = query;
+    console.log(query['popular'] === 'true');
+    const statement =
+        query.popular === 'true'
+            ? 'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND num_reviews>20;'
+            : query.successful === 'true'
+            ? 'SELECT DISTINCT * FROM business WHERE business.state=$1 AND business.city=$2 AND business.zipcode=$3 AND stars>3 AND num_reviews>30;'
+            : '';
+
+    console.log(statement);
+    const result = await selectComponentQuery(statement, values.slice(0, -1));
     console.log(result);
     response.send(result);
 };
